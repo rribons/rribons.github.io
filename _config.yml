@@ -3,13 +3,13 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
-subtitle: ''
+title: Misaka Mikoto
+subtitle: '你指尖跃动的电光，是我此生不灭的信仰，唯我超电磁炮永世长存！'
 description: ''
 keywords:
-author: John Doe
+author: 
 language: en
-timezone: ''
+timezone: 'Asia/Shanghai'
 
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
