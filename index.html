@@ -69,6 +69,68 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-docker搭建gitlab-runner" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2025/02/27/docker%E6%90%AD%E5%BB%BAgitlab-runner/" class="article-date">
+  <time class="dt-published" datetime="2025-02-27T08:05:35.000Z" itemprop="datePublished">2025-02-27</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2025/02/27/docker%E6%90%AD%E5%BB%BAgitlab-runner/">docker搭建gitlab-runner</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h3 id="使用docker容器技术部署gitlab-runner"><a href="#使用docker容器技术部署gitlab-runner" class="headerlink" title="使用docker容器技术部署gitlab runner"></a>使用docker容器技术部署gitlab runner</h3><p>要使用<code>docker-compose</code>文件部署GitLab Runner，你可以按照以下步骤操作：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /opt/store/gitlab-runner</span><br><span class="line">docker pull registry.cn-hangzhou.aliyuncs.com/misaka-open/gitlab-runner:alpine3.18</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p><strong>创建<code>docker-compose.yml</code>文件</strong>：<br>创建一个名为<code>docker-compose.yml</code>的文件，并添加以下内容：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&#x27;3.8&#x27;</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">gitlab-runner:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">registry.cn-hangzhou.aliyuncs.com/misaka-open/gitlab-runner:alpine3.18</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">&quot;gitlab-runner&quot;</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">always</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;/opt/store/gitlab-runner:/etc/gitlab-runner&#x27;</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&#x27;/var/run/docker.sock:/var/run/docker.sock&#x27;</span>  <span class="comment"># 这个挂载是将宿主机上的docker socket挂载到了容器内，这样容器内执行的docker命令会被宿主机docker daemon最终执行</span></span><br></pre></td></tr></table></figure>
+
+<p>在这个文件中，我们定义了一个名为<code>gitlab-runner</code>的服务，使用的是<code>gitlab/gitlab-runner:latest</code>镜像，并设置了卷挂载，以便GitLab Runner可以访问宿主机的Docker socket，从而能够执行Docker命令。</p>
+</li>
+<li><p><strong>启动服务</strong>：<br>完成<code>docker-compose.yml</code>文件的编写后，使用以下命令来启动服务：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/image-20241220210654105.jpg" alt="image-20241220210654105"></p>
+<p>这个命令将会启动GitLab Runner服务，并且以后台模式运行。你可以使用<code>docker ps</code>命令来验证服务是否已经成功启动。</p>
+</li>
+<li><p><strong>注册GitLab Runner</strong>：<br>启动GitLab Runner容器后，你需要注册Runner。进入容器内部，执行注册命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it gitlab-runner gitlab-ci-multi-runner register</span><br></pre></td></tr></table></figure>
+
+<p>按照提示输入GitLab实例的URL、注册token、Runner描述、标签等信息。对于执行器（executor），选择<code>docker</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Enter the GitLab instance URL (for example, https://gitlab.com/):</span><br><span class="line">http://gitlab.code-nav.cn/</span><br><span class="line">Enter the registration token:</span><br><span class="line">GR1348941yeBTxcSbQyCRywtspD-b</span><br><span class="line">Enter a description for the runner:</span><br><span class="line">[f20fce6332f4]: yupao-backend-runner</span><br><span class="line">Enter tags for the runner (comma-separated):</span><br><span class="line">build</span><br><span class="line">Enter optional maintenance note for the runner:</span><br><span class="line">Enter an executor: parallels, docker+machine, kubernetes, docker, docker-windows, docker-autoscaler, instance, custom, shell, ssh, virtualbox:</span><br><span class="line">docker</span><br><span class="line">Enter the default Docker image (for example, ruby:2.7):</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/acs/maven #这是配置了国内的中央仓库地址下载依赖比较快</span><br></pre></td></tr></table></figure>
+<p><img src="/images/image-20241220211421165.jpg" alt="image-20241220211421165"><br><img src="/images/image-20241220211738334.jpg" alt="image-20241220211738334"></p>
+</li>
+</ol>
+<p>以上步骤可以帮助你使用<code>docker-compose</code>文件部署GitLab Runner。确保你已经安装了Docker和Docker Compose，并且你的系统满足GitLab Runner的运行要求。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://rribons.github.io/2025/02/27/docker%E6%90%AD%E5%BB%BAgitlab-runner/" data-id="cm7n32k6l0001d0us8vh450vq" data-title="docker搭建gitlab-runner" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-Hexo-Github搭建个人博客" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="/2024/08/13/Hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/" class="article-date">
@@ -206,55 +268,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://rribons.github.io/2024/08/13/Hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/" data-id="clzsee32a0000dkus3rgq06iw" data-title="Hexo + Github搭建个人博客" class="article-share-link"><span class="fa fa-share">Share</span></a>
-      
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-
-  
-    <article id="post-Misaka-Mikoto" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-  <div class="article-meta">
-    <a href="/2024/08/13/Misaka-Mikoto/" class="article-date">
-  <time class="dt-published" datetime="2024-08-12T22:31:05.000Z" itemprop="datePublished">2024-08-13</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="p-name article-title" href="/2024/08/13/Misaka-Mikoto/">Misaka Mikoto</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="e-content article-entry" itemprop="articleBody">
-      
-        <p>御坂美琴（日文：御坂美琴みさかみこと）是常盘台中学的二年级学生，同时也是学园都市内仅有的七名超能力者中的第三名。能力为超电磁炮Railgun。</p>
-<p>另外，她被上条当麻昵称为「哔哩哔哩」（日文：ビリビリ，模仿电流声音的拟声词，又被译作放电妹）。</p>
-<h3 id="外貌"><a href="#外貌" class="headerlink" title="外貌"></a>外貌</h3><p>栗棕色及肩短发，同样是茶色的瞳孔。由于学校规定，无论校内校外均穿着常盘台中学的制服，但会在短裙内加穿安全裤（因此丝毫不顾忌走光问题）。</p>
-<p>在进入常盘台中学不久后，美琴开始于头发右边同时戴着两个呱太系列的发夹[注 1]，在呱太发夹双双遗失后则被换成一副朴素的直条状金属制的发夹；[3]9月1日起，她开始戴一个花朵造型的发夹（寓示着心境的变化）。</p>
-<p>胸部平坦，现今尺寸仍然与去年时一样，自己对此相当在意。</p>
-<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>御坂美琴出生于日本神奈川县[1]，是御坂美铃和御坂旅挂的女儿，血型为AB型。[注 2]</p>
-<p>在小学时，御坂离开父母，来到了学园都市就读。[5]</p>
-<h3 id="性格"><a href="#性格" class="headerlink" title="性格"></a>性格</h3><p>在所有Level 5中，御坂美琴是相对来说性格最正常的一位。平时给人的印象和其他常盘台大小姐别无二致，而具体而言，能给人善良、勇敢、正义感强的印象。好胜心很强，在本传与外传的故事开篇都提到常与上条当麻约战对决。</p>
-<p>举止偏男性化，会在短裙内穿安全裤，也有骄傲和沉不住气的性格。对待感情时则是十足的傲娇，不太能坦诚面对自己的内心。喜欢看的漫画类型为男性向少年漫画。</p>
-<p>品味相当孩子气，对呱太系列的一切卡通形象都没有抵抗力，但自己从来不会承认。有些相当幼稚的习惯，如斜上 45° 踢自动贩卖机。而在美琴读一年级时表现得更为孩子气与单纯，例如此时的她会乱丢自己的睡衣与呱太玩偶；洗澡时会睡着；迷糊中会拿错书包等等。</p>
-
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="https://rribons.github.io/2024/08/13/Misaka-Mikoto/" data-id="clzsee32d0002dkuscymc27f2" data-title="Misaka Mikoto" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="https://rribons.github.io/2024/08/13/Hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/" data-id="cm7n32k6h0000d0uset97anhl" data-title="Hexo + Github搭建个人博客" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -305,7 +319,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://rribons.github.io/2024/08/13/hello-world/" data-id="clzsee32c0001dkus6f4kazz5" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="https://rribons.github.io/2024/08/13/hello-world/" data-id="cm7n32k6m0002d0usc65hhwk4" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -335,7 +349,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/02/">February 2025</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">August 2024</a></li></ul>
     </div>
   </div>
 
@@ -348,11 +362,11 @@
       <ul>
         
           <li>
-            <a href="/2024/08/13/Hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">Hexo + Github搭建个人博客</a>
+            <a href="/2025/02/27/docker%E6%90%AD%E5%BB%BAgitlab-runner/">docker搭建gitlab-runner</a>
           </li>
         
           <li>
-            <a href="/2024/08/13/Misaka-Mikoto/">Misaka Mikoto</a>
+            <a href="/2024/08/13/Hexo-Github%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/">Hexo + Github搭建个人博客</a>
           </li>
         
           <li>
@@ -372,7 +386,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2024 Hanjacket Mou<br>
+      &copy; 2025 Hanjacket Mou<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
